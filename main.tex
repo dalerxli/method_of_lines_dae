@@ -1,0 +1,140 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{physics}
+\usepackage{dsfont}
+\usepackage{graphicx}
+
+\let\vec\boldsymbol
+
+\geometry{margin = 2.5cm}
+
+\title{Method of lines code}
+\author{Alexander Prokopyszyn}
+\date{June 2020}
+
+\begin{document}
+
+\maketitle
+
+The equations are given by
+\[\pdv{u_x}{t}=v_A^2(x,z)\qty[\nabla_{||}b_x - \pdv{b_{||}}{x}],\]
+\[\pdv{u_\perp}{t}=v_A^2(x,z)\qty[\nabla_{||}b_\perp-\nabla_\perp b_{||}],\]
+\[\pdv{b_x}{t}=\nabla_{||}u_x,\]
+\[\pdv{b_\perp}{t}=\nabla_{||}u_{\perp},\]
+\[\pdv{b_{||}}{t}=-\qty[\pdv{u_x}{x}+\nabla_\perp u_{\perp}],\]
+where
+\[\nabla_\perp = \cos\alpha\pdv{}{y} - \sin\alpha\pdv{}{z},\]
+\[\nabla_{||} = \sin\alpha\pdv{}{y} + \cos\alpha\pdv{}{z}.\]
+The field perturbations $b_x$, $b_\perp$ and $b_{||}$ are dimensionless as they have been normalised by $B_0$. The background field is given by
+\[\vec{B}_0=B_0(\sin\alpha\,\vec{\hat{y}}+\cos\alpha\,\vec{\hat{z}}).\]
+We assume the variables are of the form
+\[f(x,y,z,t) = f'(x,z)\exp\{i[k_\perp(\cos\alpha\,y - \sin\alpha\,z)+\omega t]\}.\]
+Note that
+\[\nabla_\perp f(x,y,z,t) = \exp\{i[k_\perp(\cos\alpha\,y - \sin\alpha\,z)+\omega t]\}\qty(ik_\perp - \sin\alpha\pdv{}{z})f',\]
+\[\nabla_{||} f(x,y,z,t) = \exp\{i[k_\perp(\cos\alpha\,y - \sin\alpha\,z)+\omega t]\}\cos\alpha\pdv{f'}{z} .\]
+Therefore, the above equations can be simplified to
+\[\pdv{u_x'}{t}=v_A^2(x,z)\qty[\nabla_{||}'b_x' - \pdv{b_{||}'}{x}],\]
+\[\pdv{u_\perp'}{t}=v_A^2(x,z)\qty[\nabla_{||}'b_\perp'-\nabla_\perp' b_{||}'],\]
+\[\pdv{b_x'}{t}=\nabla_{||}'u_x',\]
+\[\pdv{b_\perp'}{t}=\nabla_{||}'u_{\perp}',\]
+\[\pdv{b_{||}'}{t}=-\qty[\pdv{u_x'}{x}+\nabla_\perp' u_{\perp}'],\]
+where
+\[\nabla_\perp' = \qty(ik_\perp - \sin\alpha\pdv{}{z}),\]
+\[\nabla_{||}' = \cos\alpha\pdv{}{z}.\]
+From this point on, to keep the notation clear, we drop the ' notation.
+
+The equations can be rearranged to give
+\[\pdv[2]{u_x}{t}=v_A^2\qty[\nabla_{||}^2u_x - \pdv{b_{||}}{x}{t}],\]
+\[\pdv[2]{u_\perp}{t}=v_A^2\qty[\nabla_{||}^2u_\perp -\nabla_\perp\pdv{b_{||}}{t}],\]
+hence,
+\[\mathcal{L}u_x = i\omega\pdv{b_{||}}{x}\]
+\[\mathcal{L}u_\perp = i\omega \nabla_\perp b_{||},\]
+where
+\[\mathcal{L} = \nabla_{||}^2 + \frac{\omega^2}{v_A^2(x,z)},\]
+Therefore,
+\[\boxed{\pdv{u_x}{x} = \qty[i\omega b_{||} + \nabla_\perp u_\perp]},\]
+\[\boxed{\pdv{b_{||}}{x} = -\frac{i}{\omega}\mathcal{L}u_x,}\]
+\[\boxed{\mathcal{L}u_\perp = i\omega \nabla_\perp b_{||}.}\]
+
+We can solve these equations using the method of lines. We discretize in $z$ giving a set of ODEs where the independent variable is $x$. 
+
+Consider the operator, $\mathcal{L}$, given by
+\[\mathcal{L} = \cos^2\alpha\pdv[2]{}{z}+\frac{\omega^2}{v_A^2(x,z)}.\]
+Using the following discretizing procedure
+\[\pdv{f}{z}\rightarrow\frac{1}{\Delta z}(f^{j+1} - f^{j-1})\]
+\[\pdv[2]{f}{z}\rightarrow\frac{1}{\Delta z^2}(f^{j+1} - 2 f^{j} + f^{j-1})\]
+the $u_\perp$ equation becomes
+\[\frac{\cos^2\alpha}{\Delta z^2}(u_\perp^{j+1} - 2u_\perp^j +u_\perp^{j-1}) + \frac{\omega^2}{v_A^2(x,z_j)}u_\perp^j=i\omega\qty[ik_\perp\, b_{||}^j - \frac{\sin\alpha}{\Delta z}(b_{||}^{j+1} - b_{||}^{j-1})].\]
+This can be written as
+\[a u_\perp^{j-1} + b_j u_\perp^j - au_\perp^{j+1} = d_j,\]
+\[a u_\perp^{-1} + b_0 u_\perp^0 - au_\perp^{1} = d_0,\]
+\[a u_\perp^{-2} + b_0 u_\perp^{-1} - au_\perp^{0} = d_{-1},\]
+where
+\[a = \frac{\cos^2\alpha}{\Delta z^2},\]
+\[b_j = \frac{\omega^2}{v_A^2(x,z_j)} - 2a\]
+\[d_j = -\omega\qty[k_\perp\,b_{||}^j+i\frac{\sin\alpha}{\Delta z}(b_{||}^{j+1} - b_{||}^{j-1})],\]
+\[d_0 = -\omega\qty[k_\perp\,b_{||}^0+i\frac{\sin\alpha}{\Delta z}(b_{||}^{1} - b_{||}^{-1})],\]
+\[d_{-1} = -\omega\qty[k_\perp\,b_{||}^{-1}+i\frac{\sin\alpha}{\Delta z}(b_{||}^{0} - b_{||}^{-2})],\]
+Written as a matrix equation this becomes
+\[A\vec{u}_\perp = \vec{d},\]
+where
+\[A = \begin{pmatrix}
+b_0 & a   & 0 & 0 & ... & a \\
+a   & b_1 & a & 0 & ... & 0 \\
+0   & a & b_2 & a & ... & 0 \\
+... \\
+0 & ... & 0 & a & b_{-2} & a      \\ 
+a & ... & 0 & 0 & a      & b_{-1} \\ 
+\end{pmatrix},\ \vec{u}_\perp = \begin{pmatrix}
+u_\perp^0 \\
+u_\perp^1 \\
+u_\perp^2 \\
+... \\
+u_\perp^{-2} \\
+u_\perp^{-1}
+\end{pmatrix},\ \vec{d} = \begin{pmatrix}
+d_0 \\
+d_1 \\
+d_2 \\
+... \\
+d_{-2} \\
+d_{-1}
+\end{pmatrix}.\]
+Let 
+\[A = A' + \vec{u}\vec{v}^T,\]
+where
+\[\vec{u} = \begin{pmatrix}
+-b_1 \\
+0 \\
+0 \\
+... \\
+0 \\
+a
+\end{pmatrix},\ \vec{v} = \begin{pmatrix}
+1 \\
+0 \\
+0 \\
+... \\
+0 \\
+-a/b_1
+\end{pmatrix},
+\implies \vec{u}\vec{v}^T = 
+\begin{pmatrix}
+-b_1 & 0 & ... & 0 & a \\
+0    & 0 & ... & 0 & 0 \\
+0    & 0 & ... & 0 & 0 \\
+... \\
+0 & 0 & ... & 0 & 0 \\
+a & 0 & ... & 0 & -a^2 / b_1  
+\end{pmatrix}.\]
+Note that $A'$ is a tridiagonal matrix and can be inverted relatively easily. Using the Sherman-Morrison formula, we can calculate $\vec{u}_\perp$ by first solving
+\[A'\vec{y} = \vec{d},\]
+for $\vec{y}$, then solving
+\[A' \vec{q} = \vec{u},\]
+for $\vec{q}$ then computing $\vec{u}_\perp$ as
+\[\vec{u}_\perp = \vec{y} - \frac{\vec{v}^T\vec{y}}{1+\vec{v}^T\vec{q}}\vec{q}.\]
+
+
+\end{document}
