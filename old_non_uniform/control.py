@@ -6,13 +6,13 @@ from scipy.fftpack import diff as psdiff
 from scipy.optimize import fsolve
 
 def vA(x,z):
-	return vA0 * (1 + x) * (epsilon + (1 - epsilon) * (1 + np.tanh(np.sin(np.pi * z / Lz) / h0)) / 2)
+	return vA0 * (1 + x)
 
 def rho(x,z):
 	return 1 / vA(x,z) ** 2
 
 def rhox(x,z):
-	return -2 * vA0 / (1 + x) ** 3 / (epsilon + (1 - epsilon) * (1 + np.tanh(np.sin(np.pi * z / Lz) / h0)) / 2) ** 2
+	return -2 * vA0 / (1 + x) ** 3
 
 def ux_ana(x,z):
 	return -beta0 * np.log(x - 1j * xi) * (1j * k_perp * sol.sol(z)[0] - np.sin(alpha) * sol.sol(z)[1])
@@ -57,8 +57,7 @@ def L_dU_perp(dU_perp):
 
 Lz = 1
 kz = np.pi / Lz
-
-nz = 512
+nz = 128
 z_min = 0
 z_max =  2 * Lz
 dz = (z_max - z_min) / nz
@@ -67,25 +66,24 @@ z = np.linspace(z_min + dz / 2, z_max - dz / 2, nz)
 alpha = 0.25 * np.pi
 k_perp = 0.5 * np.pi
 vA0 = 1
-epsilon = 0.02
-h0 = 0.1
 
 z_temp = np.linspace(z_min, z_max, 5)
 phi = np.zeros((2, z_temp.size))
-phi[0, 1] = 2
-sol = solve_bvp(wave_eqn, bcs, z_temp, phi, p=[3], tol=1e-6, verbose=2)
-print('omega = ' + str(sol.p[0]))
+phi[0, 0] = 1
+phi[0, 2] = -1
+phi[0, 4] = 1
+sol = solve_bvp(wave_eqn, bcs, z_temp, phi, p=[3], tol=1e-5, verbose=2)
 
 omega_r = sol.p[0]
-omega_i = 0.0001
+omega_i = 0.001
 omega   = omega_r + 1j * omega_i
 
 xi = -2 * omega_i / omega_r * rho(0,0) / rhox(0,0)
 
-nx = 64
-lx = 1 * abs(xi)
-x_min = -3 * lx
-x_max =  3 * lx
+nx = 128
+lx = abs(xi)
+x_min = -lx
+x_max =  lx
 dx = (x_max - x_min) / (nx - 1)
 x = np.linspace(x_min, x_max, nx)
 

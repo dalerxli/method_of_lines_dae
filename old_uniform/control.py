@@ -6,39 +6,25 @@ from scipy.fftpack import diff as psdiff
 from scipy.optimize import fsolve
 
 def vA(x,z):
-	return vA0 * (1 + x) * (epsilon + (1 - epsilon) * (1 + np.tanh(np.sin(np.pi * z / Lz) / h0)) / 2)
+	return vA0
 
 def rho(x,z):
 	return 1 / vA(x,z) ** 2
 
 def rhox(x,z):
-	return -2 * vA0 / (1 + x) ** 3 / (epsilon + (1 - epsilon) * (1 + np.tanh(np.sin(np.pi * z / Lz) / h0)) / 2) ** 2
+	return 0
 
 def ux_ana(x,z):
-	return -beta0 * np.log(x - 1j * xi) * (1j * k_perp * sol.sol(z)[0] - np.sin(alpha) * sol.sol(z)[1])
+	return ux0 * np.exp(1j * (kx * x + kz * z))
 
-def b_par_ana(x,z0):
-	f = interp1d(z, b_par0)
-	return f(z0) + x - x
+def b_par_ana(x,z):
+	return b_par0 * np.exp(1j * (kx * x + kz * z))
 
 def u_perp_ana(x,z):
-	return beta0 / (x - 1j * xi) * sol.sol(z)[0]
+	return u_perp0 * np.exp(1j * (kx * x + kz * z))
 
 def du_perp_ana(x,z):
-	return -beta0 / (x - 1j * xi) ** 2 * sol.sol(z)[0]
-
-def wave_eqn(z, phi, p):
-	omega = p[0]
-	# d phi[0] / dz = phi[1]
-	# d phi[1] / dz = -(omega / vA) ^ 2 phi[0]
-	return np.vstack((phi[1], -(omega / vA(0, z) / np.cos(alpha)) ** 2 * phi[0]))
-
-def bcs(phi_a, phi_b, p):
-	# Impose periodic BCs, where:
-	# phi(z=a) = phi(z=b) = 1
-	# d phi / dz | z=a = d phi /dz | z=b
-	omega = p[0]
-	return np.array([phi_a[0]-1, phi_b[0]-1, phi_a[1] - phi_b[1]])
+	return 1j * kx * u_perp0 * np.exp(1j * (kx * x + kz * z))
 
 def L_dU_perp(dU_perp):
 	# Function used with fsolve to calculate du_perp_dx at x = x_min
@@ -56,55 +42,38 @@ def L_dU_perp(dU_perp):
 	return np.concatenate((np.real(res), np.imag(res)))
 
 Lz = 1
+kx = 1
 kz = np.pi / Lz
 
-nz = 512
+alpha = 0.0 * np.pi
+k_perp = 0.5 * np.pi
+vA0 = 1
+omega = vA0	* np.sqrt(kx ** 2 + k_perp ** 2 + kz ** 2 - 2 * kz * k_perp * np.sin(alpha) + 0j)
+
+nz = 256
 z_min = 0
 z_max =  2 * Lz
 dz = (z_max - z_min) / nz
 z = np.linspace(z_min + dz / 2, z_max - dz / 2, nz)
 
-alpha = 0.25 * np.pi
-k_perp = 0.5 * np.pi
-vA0 = 1
-epsilon = 0.02
-h0 = 0.1
-
-z_temp = np.linspace(z_min, z_max, 5)
-phi = np.zeros((2, z_temp.size))
-phi[0, 1] = 2
-sol = solve_bvp(wave_eqn, bcs, z_temp, phi, p=[3], tol=1e-6, verbose=2)
-print('omega = ' + str(sol.p[0]))
-
-omega_r = sol.p[0]
-omega_i = 0.0001
-omega   = omega_r + 1j * omega_i
-
-xi = -2 * omega_i / omega_r * rho(0,0) / rhox(0,0)
-
 nx = 64
-lx = 1 * abs(xi)
-x_min = -3 * lx
-x_max =  3 * lx
+lx = 1
+x_min = -lx
+x_max = lx
 dx = (x_max - x_min) / (nx - 1)
 x = np.linspace(x_min, x_max, nx)
 
-X, Z = np.meshgrid(x, z)
+nabla_perp0 = 1j * (k_perp - kz * np.sin(alpha))
+nabla_par0  = 1j * kz * np.cos(alpha)
+L0          = nabla_par0 ** 2 + omega ** 2 / vA0 ** 2
 
-nabla_perp0 = 1j * k_perp
+ux0     = 1
+b_par0  = -L0 / (omega * kx) * ux0
+u_perp0 = -1j * kx * nabla_perp0 / (L0 + nabla_perp0 ** 2) * ux0
 
-beta0 = xi
-
-# Calculate b_par0
-L1 = omega ** 2 * rhox(0,z)
-kzn = 2 * np.pi * fftfreq(nz, dz)
-kzn[0] = 1 # To avoid division by zero, note that fft(f)[0] is approximately equal to zero anyway
-f = beta0 * L1 / (1j * omega) * sol.sol(z)[0]
-b_par0 = ifft(fft(f) / 1j / (k_perp - kzn * np.sin(alpha)))
-
-ux_x_min     = ux_ana(x_min, z)
-b_par_x_min  = b_par_ana(x_min, z)
-u_perp_x_min = u_perp_ana(x_min, z)
+ux_x_min     = ux_ana(x_min,z)
+b_par_x_min  = b_par_ana(x_min,z)
+u_perp_x_min = u_perp_ana(x_min,z)
 
 nabla_perp_u_perp = 1j * k_perp * u_perp_x_min - np.sin(alpha) * psdiff(u_perp_x_min, period=2*Lz)
 ux_zz = psdiff(ux_x_min, order=2, period=2*Lz)
